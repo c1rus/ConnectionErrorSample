@@ -1,0 +1,52 @@
+﻿@page "/blogs"
+@rendermode InteractiveWebAssembly
+@inject IHttpClientFactory ClientFactory
+
+<PageTitle>Web API call</PageTitle>
+
+<button class="btn btn-primary" @onclick="GetBlogs">Get blogs</button>
+
+@if(_blogs != null)
+{
+    foreach(var blog in _blogs)
+    {
+        <div>@blog.Url</div>
+    }
+}
+
+@code {
+    CancellationTokenSource cts;
+    HttpClient _client;
+    List<BlogViewModel> _blogs;
+    string responseMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _client = ClientFactory.CreateClient("WebAPI");
+    }
+
+    private async Task GetBlogs()
+    {
+        cts?.Cancel();
+        cts = new CancellationTokenSource();
+
+        try
+        {
+            _blogs = await _client.GetFromJsonAsync<List<BlogViewModel>>("api/blogs", cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            responseMessage = "Request was cancelled.";
+        }
+        catch (Exception ex)
+        {
+            responseMessage = $"Error: {ex.Message}";
+        }
+    }
+
+    public class BlogViewModel
+    {
+        public int BlogId { get; set; }
+        public string Url { get; set; }
+    }
+}
